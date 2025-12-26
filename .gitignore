@@ -1,0 +1,17 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Sanal Ortamlar
+venv/
+env/
+.env
+
+# PyInstaller Artıkları (Bunları repoya yüklememeliyiz)
+build/
+dist/
+*.spec
+
+# IDE dosyaları
+.vscode/
+.idea/
