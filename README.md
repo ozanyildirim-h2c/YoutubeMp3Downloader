@@ -2,7 +2,6 @@
 
 A smart, thread-safe, and GUI-based YouTube to MP3 downloader written in Python. You can paste **direct links** OR type **video names** to search and download automatically.
 
-**(Türkçe açıklamalar aşağıdadır)**
 
 ## 🚀 Features
 * **Dual Mode Input:**
@@ -28,7 +27,7 @@ A smart, thread-safe, and GUI-based YouTube to MP3 downloader written in Python.
 
 3.  **Run the App**
     ```bash
-    python App.py
+    python app.py
     ```
 
 4.  **How to Use**
