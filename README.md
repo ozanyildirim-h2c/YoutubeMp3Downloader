@@ -2,7 +2,6 @@
 
 A simple, thread-safe, and GUI-based YouTube to MP3 downloader and converter written in Python. It downloads videos using `pytubefix` and converts them to MP3 using `ffmpeg`.
 
-**(Türkçe açıklamalar aşağıdadır)**
 
 ## 🚀 Features
 * **Batch Processing:** Import links from a `.txt` file or paste them manually.
@@ -26,7 +25,7 @@ A simple, thread-safe, and GUI-based YouTube to MP3 downloader and converter wri
 
 3.  **Run the App**
     ```bash
-    python App.py
+    python app.py
     ```
 
 ## 📦 How to Build EXE
