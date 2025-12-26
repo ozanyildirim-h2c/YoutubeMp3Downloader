@@ -1,22 +1,24 @@
-# 🎵 YouTube to MP3 Converter
+# 🎵 YouTube to MP3 Converter (Link & Search)
 
-A simple, thread-safe, and GUI-based YouTube to MP3 downloader and converter written in Python. It downloads videos using `pytubefix` and converts them to MP3 using `ffmpeg`.
+A smart, thread-safe, and GUI-based YouTube to MP3 downloader written in Python. You can paste **direct links** OR type **video names** to search and download automatically.
 
 **(Türkçe açıklamalar aşağıdadır)**
 
 ## 🚀 Features
-* **Batch Processing:** Import links from a `.txt` file or paste them manually.
-* **Clean UI:** Built with `tkinter`, featuring a progress bar and log window.
-* **Smart Conversion:** Automatically downloads the best audio stream and converts it to MP3.
+* **Dual Mode Input:**
+    * Paste YouTube links (e.g., `https://youtube.com/...`) -> Downloads directly.
+    * Type search terms (e.g., `Tarkan Yolla`) -> Finds the best match and downloads.
+* **Batch Processing:** Import mixed inputs (links & names) from a `.txt` file or paste manually.
+* **Clean UI:** Built with `tkinter`, featuring a progress bar, log window, and non-freezing thread architecture.
+* **Smart Conversion:** Automatically grabs the best audio stream, converts to MP3 using `ffmpeg`, and cleans up temp files.
 * **Duplicate Check:** Skips files if they already exist.
-* **Standalone EXE:** Can be used without installing Python (see Releases).
 
 ## 🛠️ Installation & Usage (Source Code)
 
 1.  **Clone the repo**
     ```bash
-    git clone [https://github.com/KULLANICI_ADINIZ/YoutubeMp3Converter.git](https://github.com/KULLANICI_ADINIZ/YoutubeMp3Converter.git)
-    cd YoutubeMp3Converter
+    git clone [https://github.com/ozanyildirim-h2c/YoutubeMp3Downloader.git](https://github.com/ozanyildirim-h2c/YoutubeMp3Downloader.git)
+    cd YoutubeMp3Downloader
     ```
 
 2.  **Install Dependencies**
@@ -29,7 +31,18 @@ A simple, thread-safe, and GUI-based YouTube to MP3 downloader and converter wri
     python App.py
     ```
 
-## 📦 How to Build EXE
-If you want to build the executable yourself:
+4.  **How to Use**
+    * Select an Output Folder.
+    * In the text box, you can mix links and names:
+        ```text
+        [https://www.youtube.com/watch?v=dQw4w9WgXcQ](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
+        Michael Jackson Billie Jean
+        [https://youtu.be/xyz123](https://youtu.be/xyz123)
+        Coldplay Yellow
+        ```
+    * Click **Start**.
+
+## 📦 Build EXE
+To create a standalone executable:
 ```bash
 pyinstaller --noconsole --onefile --name "YoutubeMp3Converter" App.py

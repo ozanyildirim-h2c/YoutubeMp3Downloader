@@ -4,11 +4,11 @@ import threading
 import subprocess
 import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext, ttk
-from pytubefix import YouTube
+from pytubefix import YouTube, Search  # Search modülü eklendi
 
 # --- Configuration & Constants ---
-APP_TITLE = "YouTube to MP3 Converter"
-APP_GEOMETRY = "720x600"
+APP_TITLE = "YouTube to MP3 Converter (Link & Search)"
+APP_GEOMETRY = "750x600"
 COLOR_PRIMARY = "#4CAF50"  # Green
 COLOR_TEXT_LOG = "Consolas 9"
 DEFAULT_PADDING = 10
@@ -24,7 +24,7 @@ except ImportError:
 class YoutubeToMp3App:
     """
     Main application class for downloading YouTube videos and converting them to MP3.
-    Handles the GUI and background processing threads.
+    Supports both direct links and search queries.
     """
 
     def __init__(self, root):
@@ -50,7 +50,7 @@ class YoutubeToMp3App:
         """Creates the input text area and file import button."""
         lbl_instruction = tk.Label(
             self.root, 
-            text="Paste YouTube links below or import from a file:", 
+            text="Paste YouTube links OR type video names (one per line):", 
             font=("Arial", 10, "bold")
         )
         lbl_instruction.pack(pady=(10, 5))
@@ -141,7 +141,7 @@ class YoutubeToMp3App:
             self.output_directory_var.set(selected_folder)
 
     def _import_links_from_file(self):
-        """Reads links from a text file and populates the input area."""
+        """Reads content from a text file."""
         file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
         if file_path:
             try:
@@ -152,12 +152,16 @@ class YoutubeToMp3App:
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to read file: {e}")
 
-    def _extract_unique_links(self):
-        """Parses the input area for valid YouTube URLs."""
+    def _extract_inputs(self):
+        """
+        Parses the input area line by line.
+        Returns a list of non-empty strings (URLs or Search Terms).
+        """
         raw_text = self.text_input_area.get("1.0", tk.END)
-        # Regex for standard and shortened YouTube links
-        pattern = r'(https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)[a-zA-Z0-9_-]+)'
-        return list(set(re.findall(pattern, raw_text))) # Use set to remove duplicates
+        # Split by lines and remove empty ones
+        lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
+        # Remove duplicates while preserving order
+        return list(dict.fromkeys(lines))
 
     def _start_background_process(self):
         """Validates inputs and starts the processing thread."""
@@ -169,9 +173,9 @@ class YoutubeToMp3App:
             messagebox.showwarning("Warning", "Please select an output folder first.")
             return
 
-        links = self._extract_unique_links()
-        if not links:
-            messagebox.showwarning("Warning", "No valid YouTube links found.")
+        inputs = self._extract_inputs()
+        if not inputs:
+            messagebox.showwarning("Warning", "Please enter links or video names.")
             return
 
         # Lock UI and Start Thread
@@ -179,25 +183,25 @@ class YoutubeToMp3App:
         self.btn_start.config(state="disabled")
         threading.Thread(
             target=self._process_queue, 
-            args=(links, target_dir), 
+            args=(inputs, target_dir), 
             daemon=True
         ).start()
 
     # --- Core Business Logic ---
 
-    def _process_queue(self, links, output_dir):
+    def _process_queue(self, inputs, output_dir):
         """
-        Iterates through the list of links and processes them one by one.
+        Iterates through the list of inputs (URL or Search Term).
         Running in a separate thread.
         """
-        total_count = len(links)
+        total_count = len(inputs)
         self.progress_bar["maximum"] = total_count
         self.progress_bar["value"] = 0
         
-        self._log_message(f"--- Started: Processing {total_count} videos ---")
+        self._log_message(f"--- Started: Processing {total_count} items ---")
 
-        for index, url in enumerate(links, 1):
-            self._process_single_video(url, index, total_count, output_dir)
+        for index, item in enumerate(inputs, 1):
+            self._process_single_item(item, index, total_count, output_dir)
             
             # Update Progress
             self.progress_bar["value"] = index
@@ -210,15 +214,45 @@ class YoutubeToMp3App:
         self.is_processing = False
         self.btn_start.config(state="normal")
 
-    def _process_single_video(self, url, index, total, output_dir):
+    def _resolve_url(self, item, index, total):
         """
-        Handles the download and conversion logic for a single video.
-        Steps: 1. Get Info -> 2. Download MP4 -> 3. Convert to MP3 -> 4. Cleanup
+        Determines if the item is a URL or a Search Term.
+        If Search Term, searches YouTube and returns the first video URL.
+        """
+        # Basic check: if it starts with http, assume it's a link
+        if item.lower().startswith("http"):
+            return item
+        
+        # Otherwise, treat as search query
+        self.lbl_status.config(text=f"Searching ({index}/{total}): '{item}'...")
+        self._log_message(f"Searching YouTube for: '{item}'")
+        
+        try:
+            s = Search(item)
+            if s.results:
+                video_url = s.results[0].watch_url
+                self._log_message(f"Found: {s.results[0].title}")
+                return video_url
+            else:
+                self._log_message(f"WARNING: No results found for '{item}'")
+                return None
+        except Exception as e:
+            self._log_message(f"SEARCH ERROR: {e}")
+            return None
+
+    def _process_single_item(self, item, index, total, output_dir):
+        """
+        Handles the logic for a single input item (Resolve -> Download -> Convert).
         """
         try:
-            self.lbl_status.config(text=f"Processing ({index}/{total}): Analyzing link...")
+            # Step 1: Resolve URL (Link or Search)
+            url = self._resolve_url(item, index, total)
+            if not url:
+                return # Skip if search failed
+
+            self.lbl_status.config(text=f"Processing ({index}/{total}): Getting info...")
             
-            # 1. Initialize YouTube Object
+            # Step 2: Initialize YouTube Object
             yt = YouTube(url, use_oauth=False, allow_oauth_cache=True)
             
             # Get best audio stream
@@ -241,34 +275,34 @@ class YoutubeToMp3App:
                 self._log_message(f"SKIPPED (Exists): {mp3_filename}")
                 return
 
-            # 2. Download
+            # Step 3: Download
             self.lbl_status.config(text=f"Downloading ({index}/{total}): {safe_title}")
             self._log_message(f"Downloading: {safe_title}...")
             audio_stream.download(output_path=output_dir, filename=mp4_filename)
 
-            # 3. Convert (FFmpeg)
+            # Step 4: Convert (FFmpeg)
             self.lbl_status.config(text=f"Converting ({index}/{total}): {safe_title}")
             
             ffmpeg_cmd = [
                 FFMPEG_EXECUTABLE, "-i", mp4_full_path, 
                 "-vn",                 # No video
                 "-acodec", "libmp3lame", 
-                "-q:a", "2",           # High quality variable bitrate
-                "-y",                  # Overwrite without asking
-                "-loglevel", "error",  # Suppress logs
+                "-q:a", "2",           # High quality
+                "-y",                  # Overwrite
+                "-loglevel", "error",  # Quiet
                 mp3_full_path
             ]
             
             subprocess.run(ffmpeg_cmd, check=True)
             
-            # 4. Cleanup
+            # Step 5: Cleanup
             if os.path.exists(mp4_full_path):
                 os.remove(mp4_full_path)
             
             self._log_message(f"COMPLETED: {mp3_filename}")
 
         except Exception as e:
-            self._log_message(f"ERROR ({url}): {str(e)}")
+            self._log_message(f"ERROR ({item}): {str(e)}")
 
 
 if __name__ == "__main__":
